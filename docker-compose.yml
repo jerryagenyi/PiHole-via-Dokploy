@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    restart: unless-stopped
+    hostname: pihole-vpn          # How this node will appear in Tailscale
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}  # Put your Tailscale auth key in an .env file
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false        # Kernel networking so Pi-hole can listen on the Tailscale IP
+      - TS_ACCEPT_DNS=false       # This node is the DNS server; don't use Tailscale's DNS override (avoids loops)
+    volumes:
+      - ./tailscale-state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_MODULE              # Required for kernel-mode Tailscale (TS_USERSPACE=false)
+    networks:
+      pihole_net:
+    # Uses image default: starts tailscaled and runs tailscale up when TS_AUTHKEY is set
+
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    restart: unless-stopped
+    depends_on:
+      - tailscale
+    network_mode: "service:tailscale"   # Share Tailscale's network so Pi-hole gets a Tailscale IP for DNS
+    environment:
+      TZ: "Europe/London"          # Change to your timezone
+      WEBPASSWORD: "godcares247"     # Change to a strong admin password
+      FTLCONF_dns_listeningMode: "all"
+    volumes:
+      - ./pihole/etc-pihole:/etc/pihole
+      - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    # No ports/networks here: Pi-hole is only reachable via Tailscale (same network stack as tailscale container)
+    # If you *temporarily* want the web UI on the VPS, add to tailscale service: ports: - "8080:80"
+
+networks:
+  pihole_net:
+    driver: bridge

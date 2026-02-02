@@ -236,6 +236,18 @@ Work through this checklist:
 4. **Many ads can’t be blocked by DNS alone**
    - A lot of ads are “first-party” (same domain as the site) or use encrypted DNS, so Pi-hole never sees them. For best results, use **Pi-hole + a browser ad blocker** (e.g. [uBlock Origin](https://ublockorigin.com/)). Pi-hole blocks a lot of trackers and ad domains network-wide; uBlock Origin blocks first-party and in-page ads in the browser.
 
+### YouTube ads specifically
+
+**Pi-hole cannot reliably block YouTube ads.** Pi-hole works at DNS level: it only sees domain names. YouTube serves both ads and videos from the same domains (e.g. `googlevideo.com`). Blocking those domains can stop videos from loading as well as ads. Pi-hole's own [Discourse](https://discourse.pi-hole.net/t/how-do-i-block-ads-on-youtube/253) states that DNS block lists won't reliably block YouTube ads and may break YouTube.
+
+**If you still want to try a YouTube-focused block list:**
+
+- **[youTube_ads_4_pi-hole](https://github.com/kboghdady/youTube_ads_4_pi-hole)** — Add this adlist in Pi-hole (**Group management** → **Adlists**): `https://raw.githubusercontent.com/kboghdady/youTube_ads_4_pi-hole/master/youtubelist.txt`
+- **Important:** You must allowlist `s.youtube.com` in **Group management → Allowlist** (add it as a domain there). Do **not** add `s.youtube.com` to Adlists—Adlists are blocklist URLs (http/https only); adding a domain there causes "Invalid protocol specified". The [Steven Black hosts](https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts) list already allows `s.youtube.com`.
+- After adding the list, run **Update Gravity**. If you get YouTube loops or videos not loading, see the repo README for clearing googlevideo entries; use with caution.
+
+**Recommended for YouTube:** Use a **browser extension** (e.g. [uBlock Origin](https://ublockorigin.com/)) or YouTube Premium. Pi-hole is best for network-wide trackers and ad domains; it is not a substitute for in-browser blocking on YouTube.
+
 ## Comparison with similar setups
 
 - **[100dollarguy/pihole-tailscale-dns](https://github.com/100dollarguy/pihole-tailscale-dns)** — Pi-hole + Unbound on host, Tailscale on host; uses iptables to allow DNS only from `100.0.0.0/8`. We took the idea of not letting the DNS node use Tailscale DNS (`TS_ACCEPT_DNS=false`). Our stack exposes no ports, so no firewall rules are needed for this service.
